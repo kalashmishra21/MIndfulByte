@@ -1,0 +1,165 @@
+.footer {
+  background-color: #161c2d;
+  color: #fff;
+  padding: 2rem 0 0;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2rem 1.5rem;
+}
+
+.footer-section {
+  display: flex;
+  flex-direction: column;
+  padding: 0 1rem;
+}
+
+.footer-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: #fff;
+}
+
+.footer-tagline {
+  color: #a0aec0;
+  line-height: 1.5;
+  font-size: 0.9rem;
+  max-width: 250px;
+}
+
+.footer-heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.footer-links-inline {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-links-inline a {
+  color: #a0aec0;
+  text-decoration: none;
+  transition: color 0.2s;
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+}
+
+.footer-links-inline a:hover {
+  color: #fff;
+}
+
+.social-icons {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.social-icons a {
+  color: #a0aec0;
+  font-size: 1.3rem;
+  transition: color 0.2s;
+}
+
+.social-icons a:hover {
+  color: #fff;
+}
+
+.newsletter-form {
+  display: flex;
+  margin-top: 0.5rem;
+}
+
+.newsletter-form input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  background-color: #2d3748;
+  color: #fff;
+  font-size: 0.9rem;
+  min-width: 200px;
+}
+
+.newsletter-form input::placeholder {
+  color: #a0aec0;
+}
+
+.newsletter-form button {
+  background-color: #0078ff;
+  color: white;
+  border: none;
+  width: 50px;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.newsletter-form button:hover {
+  background-color: #0056b3;
+}
+
+.newsletter-form button svg {
+  font-size: 1.5rem;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-bottom p {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+@media (max-width: 992px) {
+  .footer-container {
+    flex-wrap: wrap;
+  }
+  
+  .footer-section {
+    width: 50%;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-container {
+    flex-direction: column;
+  }
+  
+  .footer-section {
+    width: 100%;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .footer-tagline {
+    max-width: 100%;
+  }
+  
+  .footer-links-inline {
+    align-items: center;
+  }
+  
+  .social-icons {
+    justify-content: center;
+  }
+  
+  .newsletter-form input {
+    min-width: auto;
+  }
+} 

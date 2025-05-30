@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "name": "dailybyte-backend",
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "MONGO_URI": "mongodb+srv://kalashmishra21:Royal%402004@dailybytecluster.2gsmw8a.mongodb.net/DailyByteProject?retryWrites=true&w=majority&appName=DailyByteCluster",
+    "GOOGLE_CLIENT_ID": "530698123278-3cn31ts9qdpn2ted90mnfds3rg0kbcgb.apps.googleusercontent.com",
+    "FRONTEND_URL": "https://mindfulbyte-frontend.onrender.com",
+    "BACKEND_URL": "https://mindfulbyte.onrender.com",
+    "JWT_SECRET": "wuehb2389u3y1uhberfri13hgi2uhr",
+    "PORT": "5001"
+  }
+} 
