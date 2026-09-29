@@ -3,12 +3,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 
-// Configure OAuth client
-const oauth2Client = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-);
+const oauth2Client = new OAuth2Client();
 
 // Generate JWT
 const generateToken = (id) => {
@@ -35,7 +30,8 @@ const getFullImageUrl = (imagePath, req) => {
 // @route   POST /api/users
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { firstName, lastName, email, password } = req.body;
+  const { firstName, lastName, password } = req.body;
+  const email = req.body.email.trim().toLowerCase();
 
   // Check if user exists
   const userExists = await User.findOne({ email });
@@ -71,7 +67,11 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/login
 // @access  Public
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { password } = req.body;
+  if (typeof req.body.email !== 'string' || typeof password !== 'string' || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+  const email = req.body.email.trim().toLowerCase();
 
   // Check for user email and explicitly select password field
   const user = await User.findOne({ email }).select('+password');
@@ -105,119 +105,50 @@ const loginUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/google
 // @access  Public
 const googleAuth = asyncHandler(async (req, res) => {
-  try {
-    const { firstName, lastName, email, googleId, profilePicture } = req.body;
-
-    // Validate required fields
-    if (!email || !googleId) {
-      res.status(400);
-      throw new Error('Missing required Google authentication data');
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      res.status(400);
-      throw new Error('Invalid email format');
-    }
-
-    let user = await User.findOne({ email });
-
-    if (user) {
-      // Update existing user's Google information
-      user.googleId = googleId;
-      user.firstName = user.firstName || firstName;
-      user.lastName = user.lastName || lastName;
-      user.profilePicture = profilePicture || user.profilePicture;
-      await user.save();
-    } else {
-      // Validate names before creating new user
-      if (!firstName || !lastName) {
-        res.status(400);
-        throw new Error('First name and last name are required');
-      }
-
-      // Create new user with Google info
-      user = await User.create({
-        firstName: firstName || email.split('@')[0],
-        lastName: lastName || '',
-        email,
-        googleId,
-        profilePicture,
-      });
-    }
-
-    if (!user) {
-      res.status(500);
-      throw new Error('Failed to create or update user account');
-    }
-
-    const token = generateToken(user._id);
-
-    res.status(200).json({
-      _id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      profilePicture: getFullImageUrl(user.profilePicture, req),
-      token,
-    });
-  } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(error.status || 500);
-    throw new Error(error.message || 'Failed to authenticate with Google');
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(503).json({ message: 'Google sign-in is not configured. Use email and password.' });
   }
-});
-
-// @desc    Google OAuth callback
-// @route   GET /api/users/google/callback
-// @access  Public
-const googleCallback = asyncHandler(async (req, res) => {
-  const { code } = req.query;
-  
-  if (!code) {
-    return res.redirect(`${process.env.FRONTEND_URL}/login?error=Missing+authorization+code`);
+  if (typeof req.body.credential !== 'string' || !req.body.credential) {
+    return res.status(400).json({ message: 'Google ID token is required' });
   }
-  
+  let payload;
   try {
-    // Get token from Google
-    const { tokens } = await oauth2Client.getToken(code);
-    
-    // Verify the ID token
     const ticket = await oauth2Client.verifyIdToken({
-      idToken: tokens.id_token,
-      audience: process.env.GOOGLE_CLIENT_ID
+      idToken: req.body.credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
-    
-    const payload = ticket.getPayload();
-    
-    // Find or create user
-    let user = await User.findOne({ email: payload.email });
-    
-    if (!user) {
-      user = await User.create({
-        firstName: payload.given_name,
-        lastName: payload.family_name,
-        email: payload.email,
-        googleId: payload.sub,
-        profilePicture: payload.picture
-      });
-    } else if (!user.googleId) {
-      // Update existing user with Google info
+    payload = ticket.getPayload();
+  } catch {
+    return res.status(401).json({ message: 'Invalid or expired Google credential. Please sign in again.' });
+  }
+  if (!payload?.sub || !payload.email || payload.email_verified !== true) {
+    return res.status(401).json({ message: 'A verified Google email is required' });
+  }
+  const email = payload.email.trim().toLowerCase();
+  let user = await User.findOne({ googleId: payload.sub });
+  if (!user) {
+    user = await User.findOne({ email });
+    if (user && (user.googleId || (!email.endsWith('@gmail.com') && !payload.hd))) {
+      return res.status(409).json({ message: 'Use your existing sign-in method for this account.' });
+    }
+    if (user) {
       user.googleId = payload.sub;
       user.profilePicture = user.profilePicture || payload.picture;
       await user.save();
+    } else {
+      user = await User.create({
+        email, googleId: payload.sub,
+        firstName: (payload.given_name || payload.name || email.split('@')[0]).slice(0, 25),
+        lastName: (payload.family_name || '').slice(0, 25),
+        profilePicture: payload.picture,
+      });
     }
-    
-    // Generate token
-    const token = generateToken(user._id);
-    
-    return res.redirect(`${process.env.FRONTEND_URL}/google-auth-success?token=${token}&userId=${user._id}&firstName=${encodeURIComponent(user.firstName)}&lastName=${encodeURIComponent(user.lastName)}&email=${encodeURIComponent(user.email)}&profilePicture=${encodeURIComponent(user.profilePicture)}`);
-    
-  } catch (error) {
-    console.error('Google OAuth error:', error);
-    return res.redirect(`${process.env.FRONTEND_URL}/login?error=Authentication+failed&details=${encodeURIComponent(error.message)}`);
   }
+  res.json({
+    _id: user._id, firstName: user.firstName, lastName: user.lastName,
+    email: user.email, profilePicture: getFullImageUrl(user.profilePicture, req),
+    token: generateToken(user._id),
+  });
 });
 
 // @desc    Get user profile
@@ -385,7 +316,6 @@ module.exports = {
   registerUser,
   loginUser,
   googleAuth,
-  googleCallback,
   getUserProfile,
   updateUserProfile,
   uploadProfilePicture,

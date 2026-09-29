@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../utils/http';
 import * as BiIcons from 'react-icons/bi';
 import { useBookmark } from '../context/BookmarkContext';
 import AuthContext from '../context/AuthContext';

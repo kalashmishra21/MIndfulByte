@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import * as BiIcons from 'react-icons/bi';
 import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
-import axios from 'axios';
+import axios from '../utils/http';
 import AuthContext from '../context/AuthContext';
 import StreakContext from '../context/StreakContext';
 import { useTheme } from '../context/ThemeContext';
@@ -110,7 +110,6 @@ const Header = () => {
   const toggleDropdown = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Dropdown toggled, current state:', dropdownOpen);
     setDropdownOpen(prev => !prev);
   };
   

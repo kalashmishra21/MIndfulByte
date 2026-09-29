@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import axios from 'axios';
+import axios from '../utils/http';
 import { Link, useNavigate } from 'react-router-dom';
 import * as BiIcons from 'react-icons/bi';
 import * as FaIcons from 'react-icons/fa';
@@ -40,7 +40,6 @@ const Bytes = () => {
     oldKeys.forEach(key => {
       if (localStorage.getItem(key)) {
         localStorage.removeItem(key);
-        console.log(`Cleaned up old localStorage key: ${key}`);
       }
     });
   };
@@ -193,12 +192,9 @@ const Bytes = () => {
     // If answer is correct, update streak
     if (selectedOption === todayByte.quiz.correctAnswer) {
       try {
-        console.log('Bytes: Answer is correct, updating streak...');
-        console.log('Bytes: Current streak before update:', streak.currentStreak);
         
         // Update streak using context
-        const updatedStreak = await updateStreak();
-        console.log('Bytes: Updated streak received:', updatedStreak);
+        await updateStreak();
         
         // Mark that we've shown the streak for today to avoid showing it again on refresh
         const today = new Date().toDateString();
@@ -229,8 +225,6 @@ const Bytes = () => {
       } catch (error) {
         console.error('Error updating streak:', error);
       }
-    } else {
-      console.log('Bytes: Answer is incorrect, not updating streak');
     }
   };
 

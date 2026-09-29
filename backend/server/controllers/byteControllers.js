@@ -61,7 +61,7 @@ const getAllBytes = asyncHandler(async (req, res) => {
   
   // Set fixed page size
   const pageSize = 6;
-  const page = Math.max(1, parseInt(chunkCount));
+  const page = Math.max(1, parseInt(chunkCount, 10) || 1);
   
   // Build filter object
   const filter = {};
@@ -78,23 +78,14 @@ const getAllBytes = asyncHandler(async (req, res) => {
     filter.tags = { $elemMatch: { $regex: tag, $options: 'i' } };
   }
   
-  // Count total matching documents
-  const totalCount = await Byte.countDocuments(filter);
-  
-  // Calculate total pages
+  // Independent reads run together rather than adding four network round trips.
+  const [totalCount, bytes, allCategories, allTags] = await Promise.all([
+    Byte.countDocuments(filter),
+    Byte.find(filter).sort({ datePublished: -1 }).skip((page - 1) * pageSize).limit(pageSize).lean(),
+    Byte.distinct('category'),
+    Byte.distinct('tags'),
+  ]);
   const totalPages = Math.ceil(totalCount / pageSize);
-  
-  // Fetch paginated and filtered data
-  const bytes = await Byte.find(filter)
-    .sort({ datePublished: -1 })
-    .skip((page - 1) * pageSize)
-    .limit(pageSize);
-    
-  // Get all categories (regardless of current filter)
-  const allCategories = await Byte.distinct('category');
-  
-  // Get all tags (optional, might be useful for tag filtering too)
-  const allTags = await Byte.distinct('tags');
 
   res.status(200).json({
     success: true,

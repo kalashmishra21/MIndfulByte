@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import React, { useContext } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import { BookmarkProvider } from './context/BookmarkContext';
@@ -21,78 +21,9 @@ import { API_CONFIG } from './utils/config';
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
-  const { user } = useContext(AuthContext);
-  
-  useEffect(() => {
-    if (!user) {
-      window.location.href = '/login';
-    }
-  }, [user]);
-  
-  if (!user) {
-    return <div className="loading">Redirecting to login...</div>;
-  }
-  
-  return children;
-};
-
-// Google Auth Success Handler
-const GoogleAuthSuccess = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { setUser } = useContext(AuthContext);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
-    const userId = params.get('userId');
-    const firstName = params.get('firstName');
-    const lastName = params.get('lastName');
-    const email = params.get('email');
-    const profilePicture = params.get('profilePicture');
-    const error = params.get('error');
-    const details = params.get('details');
-    
-    if (error) {
-      setError(`${error}: ${details}`);
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 3000);
-      return;
-    }
-    
-    if (token && userId) {
-      const userData = {
-        _id: userId,
-        firstName,
-        lastName,
-        email,
-        profilePicture,
-        token
-      };
-      
-      // Store in localStorage
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      // Update context
-      setUser(userData);
-      
-      // Use window.location for immediate redirect
-      window.location.href = '/';
-    } else {
-      setError('Missing authentication data');
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 3000);
-    }
-  }, [location, navigate, setUser]);
-  
-  if (error) {
-    return <div className="error-message">{error}</div>;
-  }
-  
-  return <div className="loading">Processing authentication...</div>;
+  const { user, loading } = useContext(AuthContext);
+  if (loading) return <div className="loading">Loading your session...</div>;
+  return user ? children : <Navigate to="/login" replace />;
 };
 
 // Layout component for main pages with header and footer
@@ -141,7 +72,6 @@ const App = () => {
                   {/* Auth routes */}
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/signup" element={<SignupPage />} />
-                  <Route path="/google-auth-success" element={<GoogleAuthSuccess />} />
                 
                 {/* Protected routes */}
                 <Route path="/" element={

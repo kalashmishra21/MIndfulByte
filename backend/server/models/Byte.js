@@ -74,4 +74,6 @@ const ByteSchema = mongoose.Schema(
   }
 );
 
+ByteSchema.index({ datePublished: -1 });
+
 module.exports = mongoose.model('Byte', ByteSchema);

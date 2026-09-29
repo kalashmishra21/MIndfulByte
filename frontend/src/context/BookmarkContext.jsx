@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useCallback, useRef } from 'react';
 import AuthContext from './AuthContext';
-import axios from 'axios';
+import axios from '../utils/http';
 import { getApiUrl, ENDPOINTS } from '../utils/config';
 
 export const BookmarkContext = createContext();

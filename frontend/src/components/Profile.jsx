@@ -5,7 +5,7 @@ import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
 import * as AiIcons from 'react-icons/ai';
 import AuthContext from '../context/AuthContext';
-import axios from 'axios';
+import axios from '../utils/http';
 import { getApiUrl, ENDPOINTS } from '../utils/config';
 import './Profile.css';
 

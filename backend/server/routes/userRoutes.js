@@ -7,7 +7,6 @@ const {
   registerUser,
   loginUser,
   googleAuth,
-  googleCallback,
   getUserProfile,
   updateUserProfile,
   uploadProfilePicture,
@@ -20,7 +19,7 @@ const { protect } = require('../middleware/authMiddleware');
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadPath = 'uploads/profiles';
+    const uploadPath = path.join(__dirname, '../uploads/profiles');
     // Create directory if it doesn't exist
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
@@ -55,7 +54,7 @@ const upload = multer({
 router.post('/', validateUserRegistration, registerUser);
 router.post('/login', loginUser);
 router.post('/google', googleAuth);
-router.get('/google/callback', googleCallback);
+
 
 // Profile routes
 router.get('/profile', protect, getUserProfile);

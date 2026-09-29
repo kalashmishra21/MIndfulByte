@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import axios from 'axios';
+import axios from '../utils/http';
 import { useParams, Link } from 'react-router-dom';
 import * as BiIcons from 'react-icons/bi';
 import * as FaIcons from 'react-icons/fa';

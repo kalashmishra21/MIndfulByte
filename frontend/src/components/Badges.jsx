@@ -1,5 +1,5 @@
 import React, { useEffect, useContext, useState } from 'react';
-import axios from 'axios';
+import axios from '../utils/http';
 import * as FaIcons from 'react-icons/fa';
 import AuthContext from '../context/AuthContext';
 import { getApiUrl, ENDPOINTS } from '../utils/config';

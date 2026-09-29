@@ -1,125 +1,56 @@
+require('dotenv').config();
 const express = require('express');
-const dotenv = require('dotenv');
-const morgan = require('morgan');
-const connectDB = require('./config/db');
-const byteRoutes = require('./routes/byteRoutes');
-const userRoutes = require('./routes/userRoutes');
-const errorHandler = require('./middleware/errorHandler');
-const notFound = require('./middleware/notFound');
 const cors = require('cors');
-const { OAuth2Client } = require('google-auth-library');
-
-// Load env vars
-dotenv.config();
-
-// Connect to database
-connectDB();
-
+const mongoose = require('mongoose');
+const path = require('path');
+const connectDB = require('./config/db');
 const app = express();
-
-// Middleware
-app.use(express.json());
-
-// Configure CORS to allow both local and production origins
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000', 
-  'https://mindfulbyte-frontend.onrender.com'
-];
-
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+const origins = [
+  'http://localhost:5173', 'http://localhost:3000',
+  'https://mindfulbyte-frontend.onrender.com',
+  ...(process.env.FRONTEND_URL || '').split(','),
+].filter(Boolean).map(value => value.trim().replace(/\/$/, ''));
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+  origin(origin, callback) {
+    if (!origin || origins.includes(origin)) return callback(null, true);
+    const error = new Error('Origin is not allowed');
+    error.status = 403;
+    callback(error);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Cross-Origin-Opener-Policy', 'Cross-Origin-Embedder-Policy']
 }));
-
-// Serve uploaded files statically
-app.use('/uploads', express.static('uploads'));
-
-// Logger middleware for development
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
+app.use(express.json({ limit: '100kb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.get('/', (req, res) => res.json({ message: 'Welcome to DailyByte API', version: '1.0.0' }));
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/ready', (req, res) => {
+  const ready = mongoose.connection.readyState === 1;
+  res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'database unavailable' });
+});
+app.use('/api', (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    res.set('Retry-After', '5');
+    return res.status(503).json({ message: 'Database temporarily unavailable. Please retry shortly.' });
+  }
+  next();
+});
+app.use('/api/byte', require('./routes/byteRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/bookmarks', require('./routes/bookmarkRoutes'));
+app.use('/api/streaks', require('./routes/streakRoutes'));
+app.use(require('./middleware/notFound'));
+app.use(require('./middleware/errorHandler'));
+async function start() {
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required');
+  await connectDB();
+  return app.listen(process.env.PORT || 5001, '0.0.0.0', () => console.log('API listening'));
 }
-
-const bookmarkRoutes = require('./routes/bookmarkRoutes');
-const streakRoutes = require('./routes/streakRoutes');
-
-// Routes
-app.use('/api/byte', byteRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/bookmarks', bookmarkRoutes);
-app.use('/api/streaks', streakRoutes);
-
-// Welcome route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Welcome to DailyByte API',
-    version: '1.0.0',
+if (require.main === module) {
+  start().catch(() => {
+    console.error('Startup failed. Check database connectivity, MONGO_URI and JWT_SECRET.');
+    process.exit(1);
   });
-});
-
-// Error handling middleware
-app.use(notFound);
-app.use(errorHandler);
-
-// Verify Google OAuth credentials
-const verifyGoogleCredentials = () => {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5001';
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-
-  if (!clientId || clientId === 'your_client_id_here') {
-    console.error('ERROR: GOOGLE_CLIENT_ID environment variable is not set properly');
-    process.exit(1);
-  }
-
-  if (!clientSecret || clientSecret === 'your_client_secret_here') {
-    console.error('ERROR: GOOGLE_CLIENT_SECRET environment variable is not set properly');
-    process.exit(1);
-  }
-
-  // Configure OAuth client
-  const oauth2Client = new OAuth2Client(
-    clientId,
-    clientSecret,
-    `${backendUrl}/api/users/google/callback`
-  );
-
-  return {
-    oauth2Client,
-    clientId,
-    clientSecret,
-    backendUrl,
-    frontendUrl
-  };
-};
-
-// Run verification
-const googleConfig = verifyGoogleCredentials();
-global.oauth2Client = googleConfig.oauth2Client;
-
-// Start server
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  // Close server & exit process
-  process.exit(1);
-});
-module.exports = app
+}
+module.exports = app;

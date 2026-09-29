@@ -10,7 +10,7 @@ const UserSchema = new mongoose.Schema({
   },
   lastName: {
     type: String,
-    required: [true, 'Please add a last name'],
+    default: '',
     trim: true,
     maxlength: [25, 'Last name cannot be more than 25 characters']
   },
@@ -18,8 +18,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add an email'],
     unique: true,
+    trim: true,
+    lowercase: true,
     match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
       'Please add a valid email'
     ]
   },

@@ -46,7 +46,7 @@ const validateUserRegistration = (req, res, next) => {
   const { firstName, lastName, email, password } = req.body;
 
   // Check if all required fields are present
-  if (!firstName || !lastName || !email || !password) {
+  if (typeof firstName !== 'string' || (lastName != null && typeof lastName !== 'string') || typeof email !== 'string' || typeof password !== 'string' || !firstName || !email || !password) {
     res.status(400);
     throw new Error('Please provide all required fields');
   }
@@ -57,14 +57,14 @@ const validateUserRegistration = (req, res, next) => {
     throw new Error('First name must be between 2 and 25 characters');
   }
 
-  if (lastName.length < 2 || lastName.length > 25) {
+  if (lastName && lastName.length > 25) {
     res.status(400);
-    throw new Error('Last name must be between 2 and 25 characters');
+    throw new Error('Last name cannot exceed 25 characters');
   }
 
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email || !emailRegex.test(email)) {
+  if (!email || !emailRegex.test(email.trim())) {
     res.status(400);
     throw new Error('Please provide a valid email address');
   }

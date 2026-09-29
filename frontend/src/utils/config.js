@@ -1,18 +1,9 @@
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:5001' : 'https://mindfulbyte.onrender.com'),
   GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || 
                    '530698123278-3cn31ts9qdpn2ted90mnfds3rg0kbcgb.apps.googleusercontent.com'
 };
-
-// Debug log to check which URL is being used
-console.log('API Configuration:', {
-  MODE: import.meta.env.MODE,
-  PROD: import.meta.env.PROD,
-  BASE_URL: API_CONFIG.BASE_URL,
-  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-  NODE_ENV: import.meta.env.NODE_ENV
-});
 
 // API endpoints
 export const ENDPOINTS = {
@@ -43,10 +34,9 @@ export const ENDPOINTS = {
 
 // Helper function to get full API URL
 export const getApiUrl = (endpoint) => {
-  const baseUrl = API_CONFIG.BASE_URL;
+  const baseUrl = API_CONFIG.BASE_URL.replace(/\/+$/, '');
   // Remove /api from baseUrl if endpoint already includes it
   const cleanBaseUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
   const fullUrl = `${cleanBaseUrl}${endpoint}`;
-  console.log(`API URL for ${endpoint}:`, fullUrl);
   return fullUrl;
 }; 
