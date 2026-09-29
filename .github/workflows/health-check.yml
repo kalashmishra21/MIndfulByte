@@ -1,0 +1,26 @@
+name: Backend health check
+on:
+  schedule:
+    - cron: '2-59/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: backend-health
+  cancel-in-progress: false
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      BACKEND_URL: ${{ vars.BACKEND_URL || 'https://mindfulbyte.onrender.com' }}
+    steps:
+      - name: Check backend liveness and readiness
+        run: |
+          if [ -z "$BACKEND_URL" ]; then
+            echo 'Set the BACKEND_URL repository variable to the deployed backend HTTPS origin.'
+            exit 1
+          fi
+          case "$BACKEND_URL" in https://*) ;; *) echo 'BACKEND_URL must use HTTPS'; exit 1 ;; esac
+          curl --fail --silent --show-error --retry 2 --retry-delay 5 --connect-timeout 10 --max-time 60 "${BACKEND_URL%/}/health"
+          curl --fail --silent --show-error --connect-timeout 10 --max-time 15 "${BACKEND_URL%/}/ready"

@@ -1,10 +1,42 @@
 services:
   - type: web
+    name: mindfulbyte
+    runtime: node
+    plan: free
+    rootDir: backend/server
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: FRONTEND_URL
+        value: https://mindfulbyte-frontend.onrender.com
+  - type: web
     name: mindfulbyte-frontend
     runtime: static
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: VITE_API_BASE_URL
+        value: https://mindfulbyte.onrender.com
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+    headers:
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: same-origin-allow-popups
     routes:
       - type: rewrite
         source: /*
-        destination: /index.html 
+        destination: /index.html
