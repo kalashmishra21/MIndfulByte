@@ -1,12 +1,12 @@
 services:
   - type: web
-    name: mindfulbyte
+    name: MIndfulByte
     runtime: node
     plan: free
     rootDir: backend/server
     buildCommand: npm ci --omit=dev
     startCommand: npm start
-    healthCheckPath: /ready
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
@@ -21,10 +21,11 @@ services:
       - key: FRONTEND_URL
         value: https://mindfulbyte-frontend.onrender.com
   - type: web
-    name: mindfulbyte-frontend
+    name: MIndfulByte-Frontend
     runtime: static
-    buildCommand: cd frontend && npm ci && npm run build
-    staticPublishPath: frontend/dist
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
     envVars:
       - key: NODE_VERSION
         value: 22

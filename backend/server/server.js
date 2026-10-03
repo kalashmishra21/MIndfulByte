@@ -42,15 +42,40 @@ app.use('/api/bookmarks', require('./routes/bookmarkRoutes'));
 app.use('/api/streaks', require('./routes/streakRoutes'));
 app.use(require('./middleware/notFound'));
 app.use(require('./middleware/errorHandler'));
-async function start() {
+const wait = milliseconds => new Promise(resolve => {
+  const timer = setTimeout(resolve, milliseconds);
+  timer.unref();
+});
+let shuttingDown = false;
+async function keepDatabaseConnected() {
+  let retryDelay = 1000;
+  while (!shuttingDown) {
+    try {
+      await connectDB();
+      return;
+    } catch (error) {
+      // Keep liveness endpoints available while Atlas/DNS recovers. API routes
+      // return 503 until MongoDB is connected instead of hanging or crashing.
+      if (shuttingDown) break;
+      console.error(`MongoDB connection unavailable (${error.code || error.name || 'connection error'}); retrying in ${Math.round(retryDelay / 1000)}s`);
+      await wait(retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 30000);
+    }
+  }
+}
+function start() {
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required');
-  await connectDB();
-  return app.listen(process.env.PORT || 5001, '0.0.0.0', () => console.log('API listening'));
-}
-if (require.main === module) {
-  start().catch(() => {
-    console.error('Startup failed. Check database connectivity, MONGO_URI and JWT_SECRET.');
-    process.exit(1);
+  const server = app.listen(process.env.PORT || 5001, '0.0.0.0', () => {
+    console.log('API listening; database readiness is reported by /ready');
+    keepDatabaseConnected();
   });
+  const shutdown = () => {
+    shuttingDown = true;
+    server.close(() => mongoose.disconnect().catch(() => {}));
+  };
+  process.once('SIGTERM', shutdown);
+  process.once('SIGINT', shutdown);
+  return server;
 }
+if (require.main === module) start();
 module.exports = app;

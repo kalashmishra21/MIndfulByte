@@ -11,16 +11,20 @@ concurrency:
 jobs:
   health:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 2
     env:
       BACKEND_URL: ${{ vars.BACKEND_URL || 'https://mindfulbyte.onrender.com' }}
     steps:
-      - name: Check backend liveness and readiness
+      - name: Check backend liveness and report database readiness
         run: |
           if [ -z "$BACKEND_URL" ]; then
             echo 'Set the BACKEND_URL repository variable to the deployed backend HTTPS origin.'
             exit 1
           fi
           case "$BACKEND_URL" in https://*) ;; *) echo 'BACKEND_URL must use HTTPS'; exit 1 ;; esac
-          curl --fail --silent --show-error --retry 2 --retry-delay 5 --connect-timeout 10 --max-time 60 "${BACKEND_URL%/}/health"
-          curl --fail --silent --show-error --connect-timeout 10 --max-time 15 "${BACKEND_URL%/}/ready"
+          curl --fail --silent --show-error --retry 2 --retry-delay 3 --connect-timeout 5 --max-time 15 "${BACKEND_URL%/}/health"
+          status=$(curl --silent --show-error --connect-timeout 5 --max-time 10 --output /tmp/readiness.json --write-out '%{http_code}' "${BACKEND_URL%/}/ready" || true)
+          if [ "$status" != "200" ]; then
+            echo "::warning::Backend responds, but MongoDB is not ready (HTTP ${status:-000})."
+            cat /tmp/readiness.json 2>/dev/null || true
+          fi
